@@ -88,6 +88,7 @@ class LoginFragment : BaseFragment<FragmentLoginBinding, ViewModel>(
                             is APIResponse.Success -> withContext(Dispatchers.Main) {
                                 Toast.makeText(requireContext(), "登录成功", Toast.LENGTH_SHORT).show()
                                 Log.e("TAG", "===========> success: ${it.response.data}")
+                                findNavController().navigate(R.id.action_loginFragment_to_mainNavFragment)
                             }
 
                         }
