@@ -14,10 +14,13 @@ import com.example.mvvmbase.R
 import com.example.mvvmbase.base.BaseFragment
 import com.example.mvvmbase.databinding.FragmentLoginBinding
 import com.example.mvvmbase.model.LoginInfo
+import com.example.mvvmbase.network.APIResponse
 import com.example.mvvmbase.network.RequestBuilder
 import com.example.mvvmbase.network.api.User
 import com.example.mvvmbase.network.res.BaseResponse
 import com.example.mvvmbase.network.res.UserLoginRes
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
@@ -35,6 +38,7 @@ private const val ARG_PARAM2 = "param2"
 class LoginFragment : BaseFragment<FragmentLoginBinding, ViewModel>(
     FragmentLoginBinding::inflate,
     null,
+    true,
 ) {
     override fun initFragment(
         binding: FragmentLoginBinding,
@@ -52,27 +56,44 @@ class LoginFragment : BaseFragment<FragmentLoginBinding, ViewModel>(
                 NavOptions.Builder().setPopUpTo(R.id.loginFragment, true).build()
 */
 
-            RequestBuilder().getAPI(User::class.java).login(LoginInfo("root", "123456"))
-                .enqueue(object : Callback<BaseResponse<UserLoginRes>> {
-                    override fun onResponse(
-                        call: Call<BaseResponse<UserLoginRes>>?,
-                        response: Response<BaseResponse<UserLoginRes>>?
-                    ) {
-                        response?.let {
-                            if (it.body().data != null) {
-                                Log.i("TAG", "onResponse:${it.body().data.toString()}")
-                            } else {
-                                Toast.makeText(requireContext(), "$it", Toast.LENGTH_SHORT).show()
+            /*            RequestBuilder().getAPI(User::class.java).login(LoginInfo("root", "123456"))
+                            .enqueue(object : Callback<BaseResponse<UserLoginRes>> {
+                                override fun onResponse(
+                                    call: Call<BaseResponse<UserLoginRes>>?,
+                                    response: Response<BaseResponse<UserLoginRes>>?
+                                ) {
+                                    response?.let {
+                                        if (it.body().data != null) {
+                                            Log.i("TAG", "onResponse:${it.body().data.toString()}")
+                                        } else {
+                                            Toast.makeText(requireContext(), "$it", Toast.LENGTH_SHORT).show()
+                                        }
+                                    }
+
+                                }
+
+                                override fun onFailure(call: Call<BaseResponse<UserLoginRes>>?, t: Throwable?) {
+                                    Log.e("TAG-FAIL", "======> fail")
+                                }
+                            })*/
+
+
+            publicViewModel!!.apply {
+                getAPI(User::class.java).login(LoginInfo("root", "123456")).getResponse { flow ->
+                    flow.collect {
+                        when (it) {
+                            is APIResponse.Error -> Log.e("TAG", "===========> error:${it.errMsg}")
+                            APIResponse.Loading -> Log.w("TAG", "===========> loading")
+                            // 主线程更新UI，否则将会被异常（原线程为io线程）
+                            is APIResponse.Success -> withContext(Dispatchers.Main) {
+                                Toast.makeText(requireContext(), "登录成功", Toast.LENGTH_SHORT).show()
+                                Log.e("TAG", "===========> success: ${it.response.data}")
                             }
+
                         }
-
                     }
-
-                    override fun onFailure(call: Call<BaseResponse<UserLoginRes>>?, t: Throwable?) {
-                        Log.e("TAG-FAIL", "======> fail")
-                    }
-                })
-
+                }
+            }
 
         }
     }
